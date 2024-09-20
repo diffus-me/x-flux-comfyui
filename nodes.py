@@ -2,6 +2,7 @@ import os
 
 import comfy.model_management as mm
 import comfy.model_patcher as mp
+import execution_context
 from comfy.utils import ProgressBar
 from comfy.clip_vision import load as load_clip_vision
 from comfy.clip_vision import clip_preprocess, Output
@@ -89,9 +90,9 @@ def print_if_not_empty(a):
     return b[0]
 class LoadFluxLora:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {"required": { "model": ("MODEL",),
-                              "lora_name": (cleanprint(folder_paths.get_filename_list("xlabs_loras")), ),
+                              "lora_name": (cleanprint(folder_paths.get_filename_list(context, "xlabs_loras")), ),
                               "strength_model": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.01}),
                               }}
 
@@ -209,9 +210,9 @@ def load_checkpoint_controlnet(local_path):
 
 class LoadFluxControlNet:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {"required": {"model_name": (["flux-dev", "flux-dev-fp8", "flux-schnell"],),
-                              "controlnet_path": (folder_paths.get_filename_list("xlabs_controlnets"), ),
+                              "controlnet_path": (folder_paths.get_filename_list(context, "xlabs_controlnets"), ),
                               }}
 
     RETURN_TYPES = ("FluxControlNet",)
@@ -488,11 +489,14 @@ class XlabsSampler:
 
 class LoadFluxIPAdapter:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {"required": {
-                "ipadatper": (folder_paths.get_filename_list("xlabs_ipadapters"),),
-                "clip_vision": (folder_paths.get_filename_list("clip_vision"),),
+                "ipadatper": (folder_paths.get_filename_list(context, "xlabs_ipadapters"),),
+                "clip_vision": (folder_paths.get_filename_list(context, "clip_vision"),),
                 "provider": (["CPU", "GPU",],),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
     RETURN_TYPES = ("IP_ADAPTER_FLUX",)
@@ -500,7 +504,7 @@ class LoadFluxIPAdapter:
     FUNCTION = "loadmodel"
     CATEGORY = "XLabsNodes"
 
-    def loadmodel(self, ipadatper, clip_vision, provider):
+    def loadmodel(self, ipadatper, clip_vision, provider, context: execution_context.ExecutionContext):
         pbar = ProgressBar(6)
         device=mm.get_torch_device()
         offload_device=mm.unet_offload_device()
@@ -509,7 +513,7 @@ class LoadFluxIPAdapter:
         path = os.path.join(dir_xlabs_ipadapters, ipadatper)
         ckpt = load_safetensors(path)
         pbar.update(1)
-        path_clip = folder_paths.get_full_path("clip_vision", clip_vision)
+        path_clip = folder_paths.get_full_path(context, "clip_vision", clip_vision)
         
         try: 
             clip = FluxClipViT(path_clip)
