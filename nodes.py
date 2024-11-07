@@ -333,7 +333,10 @@ class XlabsSampler:
             "optional": {
                     "latent_image": ("LATENT", {"default": None}),
                     "controlnet_condition": ("ControlNetCondition", {"default": None}),
-                }
+                },
+            "hidden": {
+                    "context": "EXECUTION_CONTEXT"
+                ,}
             }
     RETURN_TYPES = ("LATENT",)
     RETURN_NAMES = ("latent",)
@@ -343,8 +346,8 @@ class XlabsSampler:
     def sampling(self, model, conditioning, neg_conditioning,
                  noise_seed, steps, timestep_to_start_cfg, true_gs,
                  image_to_image_strength, denoise_strength,
-                 latent_image=None, controlnet_condition=None
-                 ):
+                 latent_image=None, controlnet_condition=None,
+                 context: execution_context.ExecutionContext=None):
         additional_steps = 11 if controlnet_condition is None else 12
         mm.load_model_gpu(model)
         inmodel = model.model
@@ -406,7 +409,7 @@ class XlabsSampler:
                 pass
         # for sampler preview
         x0_output = {}
-        callback = latent_preview.prepare_callback(model, len(timesteps) - 1, x0_output)
+        callback = latent_preview.prepare_callback(context, model, len(timesteps) - 1, x0_output)
 
         if controlnet_condition is None:
             x = denoise(
