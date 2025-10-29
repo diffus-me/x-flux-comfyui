@@ -212,7 +212,7 @@ class LoadFluxControlNet:
     @classmethod
     def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {"required": {"model_name": (["flux-dev", "flux-dev-fp8", "flux-schnell"],),
-                              "controlnet_path": (folder_paths.get_filename_list(context, "xlabs_controlnets"), ),
+                              "controlnet_path": (["None"] + folder_paths.get_filename_list(context, "xlabs_controlnets"), ),
                               }}
 
     RETURN_TYPES = ("FluxControlNet",)
@@ -221,6 +221,8 @@ class LoadFluxControlNet:
     CATEGORY = "XLabsNodes"
 
     def loadmodel(self, model_name, controlnet_path):
+        if controlnet_path == "None":
+            return (None, )
         device=mm.get_torch_device()
 
         controlnet = load_controlnet(model_name, device)
@@ -253,6 +255,8 @@ class ApplyFluxControlNet:
     CATEGORY = "XLabsNodes"
 
     def prepare(self, controlnet, image, strength, controlnet_condition = None):
+        if not controlnet:
+            return (controlnet_condition, )
         device=mm.get_torch_device()
         controlnet_image = torch.from_numpy((np.array(image) * 2) - 1)
         controlnet_image = controlnet_image.permute(0, 3, 1, 2).to(torch.bfloat16).to(device)
@@ -297,7 +301,8 @@ class ApplyAdvancedFluxControlNet:
     CATEGORY = "XLabsNodes"
 
     def prepare(self, controlnet, image, strength, start, end, controlnet_condition = None):
-
+        if not controlnet:
+            return (controlnet_condition, )
         device=mm.get_torch_device()
         controlnet_image = torch.from_numpy((np.array(image) * 2) - 1)
         controlnet_image = controlnet_image.permute(0, 3, 1, 2).to(torch.bfloat16).to(device)
